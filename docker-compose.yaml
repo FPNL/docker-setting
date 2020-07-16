@@ -1,0 +1,54 @@
+version: '3.7'
+
+volumes:
+    mysql:
+
+services:
+    docker-node:
+        image: "node:lts"
+        tty: true
+        container_name: docker-node
+        volumes:
+            - $PWD/projecta/public/view:/home/node/app
+        working_dir: /home/node/app
+        ports:
+            - "8080:8080"
+        # command: "npm run serve"
+    docker-php-project-a: &projectFormat
+        # build: ./php
+        image: php-custom:symfony-v1
+        container_name: docker-php-project-a
+        volumes:
+            - $PWD/projecta:/usr/src/myapp
+        ports:
+            - "9000"
+    docker-php-project-b:
+        <<: *projectFormat
+        container_name: docker-php-project-b
+        volumes:
+            - $PWD/projectb:/usr/src/myapp
+    docker-nginx:
+        image: nginx
+        container_name: docker-nginx
+        ports:
+            - "80:80" # A
+            - "81:81" # B
+        # 依賴關係 先跑php
+        depends_on:
+            - "docker-php-project-a"
+            - "docker-php-project-b"
+        volumes:
+            # 映射主機./conf.d目錄到容器/etc/nginx/conf.d目錄
+            - $PWD/nginx/conf.d:/etc/nginx/conf.d
+    docker-mysql:
+        image: mysql:5.7
+        container_name: docker-mysql
+        volumes:
+            - mysql:/var/lib/mysql
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+            - MYSQL_USER=${MYSQL_USER:-root}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD:-root}
+            # - MYSQL_DATABASE=${MYSQL_DATABASE:-i18n_users}
+        ports:
+            - "3306:3306"
