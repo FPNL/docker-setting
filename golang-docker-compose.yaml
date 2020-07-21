@@ -1,0 +1,15 @@
+version: '3.8'
+
+volumes:
+  golang:
+
+services:
+  docker-golang:
+    container_name: docker-golang
+    tty: true
+    image: golang
+    working_dir: /go/src/app
+    ports:
+      - "7979:7979"
+    volumes:
+      - golang:/go/src/app
