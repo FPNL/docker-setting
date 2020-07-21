@@ -1,7 +1,7 @@
 version: '3.8'
 
 # volumes:
-#   golang:
+#   golang-volume:
 
 services:
   docker-golang:
@@ -12,4 +12,26 @@ services:
       - "8080:8080"
     volumes:
       - $PWD:/go
-      # - golang:/go/src/app
+      # - $PWD:/go/src/app
+      # - golang-volume:/go
+
+# 預設的 GOPATH 是 /go
+# 因為這裡的 git 是利用不同的語言做分支，
+# 所以在 Practice_area 的 .gitignore 是有排除 go/bin, go/pkg
+# 這兩個資料夾是不必要上傳的，他像是 node_modules 的概念
+
+# 但有時候我會待在 Go 支線很久，如果是 src/app 一個容器， src/app2 一個容器
+# 那 pkg 真的是下載不完，所以採用這種方式，可以共用 pkg，
+# 利用 VSCode 的 Remote Container 開啟各個專案，達到分開的效果
+
+# 如果想要隨便資料夾，在本機上不按照 Go 的形式
+# go
+# |__src
+# |__pkg
+# |__bin
+# 例如隨便在 ~/documents 利用容器開始 Go 專案
+# 可以把 `- $PWD:/go` 換成 `- $PWD:/go/src/app`
+
+# 又如果連本機都不想要有檔案只是臨時測試
+# 那至少需要複製此檔案 docker-compose.yaml
+# 把 volumes 其他選項關閉，只打開 `- golang-volume:/go`
