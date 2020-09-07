@@ -2,49 +2,54 @@ version: '3.7'
 
 volumes:
     mysql:
+    redis:
+    symfony_vendor:
+    symfony_cache:
 
 services:
-    docker-node:
-        image: "node:lts"
-        tty: true
-        container_name: docker-node
-        volumes:
-            - $PWD/projecta/public/view:/home/node/app
-        working_dir: /home/node/app
-        ports:
-            - "8080:8080"
+    # docker-node:
+    #     image: "node:lts"
+    #     tty: true
+    #     container_name: docker-node
+    #     volumes:
+    #         - $PWD/projecta/public/view:/home/node/app:delegated
+    #     working_dir: /home/node/app
+    #     ports:
+    #         - "8080:8080"
         # command: "npm run serve"
-    docker-php-project-a: &projectFormat
+    docker-php-symfony: &projectFormat
         # build: ./php
         image: php-custom:symfony-v1
-        container_name: docker-php-project-a
+        container_name: docker-php-symfony
         volumes:
-            - $PWD/projecta:/usr/src/myapp
+            - $PWD/{YOUR_PROJECT_FOLDER}:/usr/src/myapp:delegated
+            - symfony_vendor:/usr/src/myapp/vendor
+            - symfony_cache:/usr/src/myapp/app/cache
         ports:
             - "9000"
-    docker-php-project-b:
+    docker-php-symfony-2:
         <<: *projectFormat
-        container_name: docker-php-project-b
+        container_name: docker-php-symfony-2
         volumes:
-            - $PWD/projectb:/usr/src/myapp
+            - $PWD/{YOUR_PROJECT_FOLDER}:/usr/src/myapp:delegated
     docker-nginx:
         image: nginx
         container_name: docker-nginx
         ports:
-            - "80:80" # A
-            - "81:81" # B
+            - "8000:8000" # A
+            - "8001:8001" # B
         # 依賴關係 先跑php
         depends_on:
-            - "docker-php-project-a"
-            - "docker-php-project-b"
+            - "docker-php-symfony"
+            - "docker-php-symfony-2"
         volumes:
             # 映射主機./conf.d目錄到容器/etc/nginx/conf.d目錄
-            - $PWD/nginx/conf.d:/etc/nginx/conf.d
+            - $PWD/nginx/conf.d:/etc/nginx/conf.d:delegated
     docker-mysql:
         image: mysql:5.7
         container_name: docker-mysql
         volumes:
-            - mysql:/var/lib/mysql
+            - mysql:/var/lib/mysql:delegated
         environment:
             - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
             - MYSQL_USER=${MYSQL_USER:-root}
@@ -52,3 +57,10 @@ services:
             # - MYSQL_DATABASE=${MYSQL_DATABASE:-i18n_users}
         ports:
             - "3306:3306"
+    redis:
+        image: redis
+        container_name: docker-redis
+        volumes:
+            - redis:/data:delegated
+        ports:
+            - "6379:6379"
