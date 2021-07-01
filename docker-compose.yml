@@ -1,0 +1,74 @@
+version: '3.8'
+
+volumes:
+    mysql:
+    redis:
+    starter_vendor:
+    starter_cache:
+
+services:
+    docker-pineapple-starter: &projectFormat
+        container_name: docker-pineapple-starter
+        # image: fpnl/php-custom:symfony-lts
+        image: php-custom:symfony-lts
+        working_dir: /usr/src/myapp
+        volumes:
+            - ./pineapple-starter:/usr/src/myapp:delegated
+            - ./php/php-fpm.d:/usr/local/etc/php-fpm.d:delegated
+            - ./php/php.ini:/usr/local/etc/php/php.ini
+            - starter_vendor:/usr/src/myapp/vendor # 為了加快 symfony 速度
+            - starter_cache:/usr/src/myapp/app/cache # 為了加快 symfony 速度
+        ports:
+          - 8000:8000
+        environment:
+            - FPM_PM_MAX_CHILDREN=10
+            - FPM_PM_MAX_REQUESTS=100
+            - FPM_PM_SLOWLOG_TIMEOUT=5
+            - XDEBUG_MODE=off # mode 預設： develop. off, coverage, debug, gcstats, profile, trace
+            - TZ=Asia/Taipei
+            - PHP_IDE_CONFIG=serverName=localhost
+        command: /bin/bash -c "chmod -R 777 app/cache && symfony serve --no-tls"
+
+    # docker-{ANY NAME}:
+    #     <<: *projectFormat
+    #     container_name: docker-{ANY NAME}
+    #     ports:
+    #         - 9001:9001
+    #     volumes:
+    #         - $PWD/{PROJECT_FOLDER}:/usr/src/myapp
+    #         - starter_vendor:/usr/src/myapp/vendor
+    #         - starter_cache:/usr/src/myapp/app/cache
+
+    # docker-nginx:
+    #     image: nginx
+    #     container_name: docker-nginx
+    #     ports:
+    #         - "8000:8000"
+    #     # 依賴關係 先跑其他服務
+    #     depends_on:
+    #         - "docker-pineapple-starter"
+    #     volumes:
+    #         # 映射主機./conf.d目錄到容器/etc/nginx/conf.d目錄
+    #         - ./nginx/conf.d:/etc/nginx/conf.d:delegated
+
+    docker-mysql:
+        image: mysql:5.7
+        container_name: docker-mysql
+        volumes:
+            - ./mysql_db:/var/lib/mysql:delegated
+            # - ./mysql/custom-config.cnf:/etc/mysql/mysql.conf.d/custom-config.cnf:delegated
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+            MYSQL_USER: ${MYSQL_USER:-root}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD:-root}
+        ports:
+            - "3306:3306"
+        command: --sql-mode="STRICT_TRANS_TABLES"
+
+    redis:
+        image: redis
+        container_name: docker-redis
+        volumes:
+            - redis:/data:delegated
+        ports:
+            - "6379:6379"
